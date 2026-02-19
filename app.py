@@ -55,11 +55,6 @@ def dashboard():
                            overdue=overdue,
                            tickets=tickets)
 
-if __name__ == "__main__":
-    app.run(debug=True)
-    # your existing routes above...
-
-import os
 
 import os
 
