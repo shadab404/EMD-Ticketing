@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for
-from models import db, User, Ticket
-from flask_login import LoginManager, login_user, login_required, logout_user
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
-from datetime import datetime
+import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'emdad_secret'
