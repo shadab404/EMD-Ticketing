@@ -5,7 +5,7 @@ from flask_bcrypt import Bcrypt
 import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_safe_default_key') # Needed for sessions
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_safe_default_key') 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///emdad.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -26,7 +26,7 @@ class Ticket(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     status = db.Column(db.String(50), default="Open")
-    
+   
     def is_overdue(self):
         return False 
 
@@ -66,22 +66,11 @@ def dashboard():
                            overdue=overdue,
                            tickets=tickets)
 
+
 if __name__ == "__main__":
+
     with app.app_context():
-        
         db.create_all()
         
-       
-        admin_user = User.query.filter_by(username="admin").first()
-        if not admin_user:
-            print("Creating default admin user...")
-            hashed_pw = bcrypt.generate_password_hash("admin123").decode('utf-8')
-            new_user = User(username="admin", password=hashed_pw)
-            db.session.add(new_user)
-            db.session.commit()
-            print("Admin created: User: admin | Pass: admin123")
-        
-    
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
