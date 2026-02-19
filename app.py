@@ -5,11 +5,12 @@ from flask_bcrypt import Bcrypt
 import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'emdad_secret'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///emdad.db'
 
-db.init_app(app)
-bcrypt = Bcrypt(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///emdad.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+with app.app_context():
+    db.create_all()
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -18,8 +19,6 @@ login_manager.login_view = "login"
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
-db = SQLAlchemy(app)
 
 with app.app_context():
     db.create_all()
