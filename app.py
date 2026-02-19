@@ -9,14 +9,14 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_safe_default_key') # 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///emdad.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# 1. INITIALIZE EXTENSIONS (This defines 'db')
+
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
-# 2. DEFINE YOUR MODELS (Required for the dashboard and login to work)
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
@@ -26,9 +26,9 @@ class Ticket(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     status = db.Column(db.String(50), default="Open")
-    # Add a simple helper for the overdue check used in your route
+    
     def is_overdue(self):
-        return False # Replace with your actual logic
+        return False 
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -68,10 +68,10 @@ def dashboard():
 
 if __name__ == "__main__":
     with app.app_context():
-        # 1. Create the database and tables
+        
         db.create_all()
         
-        # 2. Check if an admin user exists, if not, create one
+       
         admin_user = User.query.filter_by(username="admin").first()
         if not admin_user:
             print("Creating default admin user...")
@@ -81,7 +81,7 @@ if __name__ == "__main__":
             db.session.commit()
             print("Admin created: User: admin | Pass: admin123")
         
-    # 3. Start the server
+    
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
