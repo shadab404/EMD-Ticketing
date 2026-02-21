@@ -55,7 +55,7 @@ def login():
 
     return render_template("login.html")
 
-@app.route('/')
+@app.route('/dashboard')
 @login_required
 def dashboard():
     tickets = Ticket.query.all()
