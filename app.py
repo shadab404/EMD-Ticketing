@@ -41,6 +41,10 @@ def load_user(user_id):
     return db.session.get(User, int(user_id))
 
 # --- ROUTES ---
+@app.route('/')
+def home():
+    return redirect(url_for('login'))
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == "POST":
