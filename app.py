@@ -59,19 +59,16 @@ with app.app_context():
 
 @app.route("/", methods=["GET", "POST"])
 def login():
-    print("Login route hit")
-
     if request.method == "POST":
-        print("POST received")
-        print("Form data:", request.form)
-
-        email = request.form.get("email")
+        login_input = request.form.get("login")  # username or email
         password = request.form.get("password")
 
-        print("Email:", email)
-        print("Password exists:", bool(password))
+        # Try to find user by email first
+        user = User.query.filter_by(email=login_input).first()
 
-        user = User.query.filter_by(email=email).first()
+        # If not found by email, try username
+        if not user:
+            user = User.query.filter_by(username=login_input).first()
 
         if user and check_password_hash(user.password, password):
             login_user(user)
