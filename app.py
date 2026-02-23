@@ -12,9 +12,12 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
 
 # PostgreSQL for Render
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-    "DATABASE_URL",
-    "sqlite:///tickets.db"
+database_url = os.getenv("DATABASE_URL")
+
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 )
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
