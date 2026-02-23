@@ -1,13 +1,16 @@
+import os
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Ticket
-from datetime import datetime
-import os
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'supersecretkey'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tickets.db'
+app.config['SECRET_KEY'] = "supersecret"
+
+# PostgreSQL for Render
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
@@ -27,32 +30,28 @@ with app.app_context():
     if not User.query.filter_by(username="admin").first():
         admin = User(
             username="admin",
-            password=generate_password_hash("admin123")
+            password=generate_password_hash("admin123"),
+            role="admin"
         )
         db.session.add(admin)
         db.session.commit()
 
 
 # ---------------- LOGIN ----------------
-@app.route("/", methods=["GET", "POST"])
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/", methods=["GET","POST"])
+@app.route("/login", methods=["GET","POST"])
 def login():
     if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
+        user = User.query.filter_by(username=request.form['username']).first()
 
-        user = User.query.filter_by(username=username).first()
-
-        if user and check_password_hash(user.password, password):
+        if user and check_password_hash(user.password, request.form['password']):
             login_user(user)
             return redirect(url_for("dashboard"))
-        else:
-            flash("Invalid credentials")
+        flash("Invalid credentials")
 
     return render_template("login.html")
 
 
-# ---------------- LOGOUT ----------------
 @app.route("/logout")
 @login_required
 def logout():
@@ -64,64 +63,75 @@ def logout():
 @app.route("/dashboard")
 @login_required
 def dashboard():
+
+    priority_filter = request.args.get("priority")
+    status_filter = request.args.get("status")
+
+    tickets = Ticket.query
+
+    if priority_filter:
+        tickets = tickets.filter_by(priority=priority_filter)
+
+    if status_filter:
+        tickets = tickets.filter_by(status=status_filter)
+
+    tickets = tickets.all()
+
     total = Ticket.query.count()
-    open_tickets = Ticket.query.filter_by(status="Open").count()
+    open_count = Ticket.query.filter_by(status="Open").count()
     resolved = Ticket.query.filter_by(status="Resolved").count()
-    overdue = Ticket.query.filter_by(status="Overdue").count()
-    tickets = Ticket.query.order_by(Ticket.created_at.desc()).all()
+
+    # Agent performance
+    agents = User.query.filter_by(role="agent").all()
+    performance = []
+
+    for agent in agents:
+        solved = Ticket.query.filter_by(agent_id=agent.id, status="Resolved").count()
+        performance.append({"name": agent.username, "solved": solved})
 
     return render_template("dashboard.html",
+                           tickets=tickets,
                            total=total,
-                           open_tickets=open_tickets,
+                           open_count=open_count,
                            resolved=resolved,
-                           overdue=overdue,
-                           tickets=tickets)
+                           performance=performance)
 
 
 # ---------------- CREATE TICKET ----------------
-@app.route("/create_ticket", methods=["GET", "POST"])
+@app.route("/create_ticket", methods=["GET","POST"])
 @login_required
 def create_ticket():
+
     if request.method == "POST":
-        title = request.form.get("title")
-        description = request.form.get("description")
-        priority = request.form.get("priority")
-        assigned_to = request.form.get("assigned_to")
+
+        due = datetime.utcnow() + timedelta(days=2)  # SLA 2 days
 
         ticket = Ticket(
-            title=title,
-            description=description,
-            priority=priority,
-            assigned_to=assigned_to,
-            status="Open"
+            title=request.form['title'],
+            description=request.form['description'],
+            priority=request.form['priority'],
+            agent_id=request.form['agent'],
+            due_date=due
         )
 
         db.session.add(ticket)
         db.session.commit()
+
         return redirect(url_for("dashboard"))
 
-    return render_template("create_ticket.html")
+    agents = User.query.filter_by(role="agent").all()
+    return render_template("create_ticket.html", agents=agents)
 
 
 # ---------------- UPDATE STATUS ----------------
-@app.route("/update_status/<int:id>/<status>")
+@app.route("/update/<int:id>/<status>")
 @login_required
-def update_status(id, status):
+def update(id, status):
     ticket = Ticket.query.get_or_404(id)
     ticket.status = status
+
+    if status == "Resolved":
+        ticket.due_date = None
+
     db.session.commit()
     return redirect(url_for("dashboard"))
-
-
-# ---------------- DELETE ----------------
-@app.route("/delete_ticket/<int:id>")
-@login_required
-def delete_ticket(id):
-    ticket = Ticket.query.get_or_404(id)
-    db.session.delete(ticket)
-    db.session.commit()
-    return redirect(url_for("dashboard"))
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
