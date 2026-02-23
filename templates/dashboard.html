@@ -19,3 +19,6 @@
     </ul>
 </body>
 </html>
+{% if ticket.due_date and ticket.due_date < now and ticket.status != "Resolved" %}
+    <span style="color:red;">Overdue</span>
+{% endif %}
