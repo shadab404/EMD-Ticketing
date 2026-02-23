@@ -5,20 +5,30 @@ from datetime import datetime
 db = SQLAlchemy()
 
 class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), default="agent")  # admin / agent
+    __tablename__ = "users"
 
-    tickets = db.relationship('Ticket', backref='agent', lazy=True)
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150))
+    email = db.Column(db.String(150), unique=True)
+    password = db.Column(db.String(200))
+    role = db.Column(db.String(50), default="employee")  # admin / agent / employee
+    language = db.Column(db.String(10), default="en")
+
+    tickets_created = db.relationship("Ticket", backref="creator", foreign_keys='Ticket.created_by')
+    tickets_assigned = db.relationship("Ticket", backref="agent", foreign_keys='Ticket.assigned_to')
 
 
 class Ticket(db.Model):
+    __tablename__ = "tickets"
+
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    priority = db.Column(db.String(20), nullable=False)
-    status = db.Column(db.String(20), default="Open")
+    title = db.Column(db.String(200))
+    description = db.Column(db.Text)
+    priority = db.Column(db.String(50))
+    status = db.Column(db.String(50), default="Open")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    due_date = db.Column(db.DateTime)
-    agent_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    sla_deadline = db.Column(db.DateTime)
+    attachment = db.Column(db.String(300))
+
+    created_by = db.Column(db.Integer, db.ForeignKey("users.id"))
+    assigned_to = db.Column(db.Integer, db.ForeignKey("users.id"))
