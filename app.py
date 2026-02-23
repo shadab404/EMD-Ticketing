@@ -1,28 +1,63 @@
 import os
-from flask import Flask, render_template, redirect, url_for, request, flash
-from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Ticket
 from datetime import datetime, timedelta
+from flask import Flask, render_template, redirect, url_for, request, flash, session
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user, UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_mail import Mail, Message
 
+# ---------------- APP CONFIG ----------------
 app = Flask(__name__)
-app.config['SECRET_KEY'] = "supersecret"
+app.config['SECRET_KEY'] = 'supersecretkey'
 
 # PostgreSQL for Render
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
-
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db.init_app(app)
+# File upload
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-login_manager = LoginManager()
-login_manager.init_app(app)
+# Email Config (CHANGE THESE)
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'your_email@gmail.com'
+app.config['MAIL_PASSWORD'] = 'your_app_password'
+
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
 login_manager.login_view = "login"
+mail = Mail(app)
 
+# ---------------- MODELS ----------------
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True)
+    password = db.Column(db.String(200))
+    role = db.Column(db.String(20), default="agent")
+
+class Ticket(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200))
+    description = db.Column(db.Text)
+    priority = db.Column(db.String(20))
+    status = db.Column(db.String(20), default="Open")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    due_date = db.Column(db.DateTime)
+    attachment = db.Column(db.String(200))
+    agent_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+class Employee(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    department = db.Column(db.String(100))
+    email = db.Column(db.String(100))
+
+# ---------------- LOGIN ----------------
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
 
 with app.app_context():
     db.create_all()
@@ -36,8 +71,7 @@ with app.app_context():
         db.session.add(admin)
         db.session.commit()
 
-
-# ---------------- LOGIN ----------------
+# ---------------- ROUTES ----------------
 @app.route("/", methods=["GET","POST"])
 @app.route("/login", methods=["GET","POST"])
 def login():
@@ -51,54 +85,38 @@ def login():
 
     return render_template("login.html")
 
-
 @app.route("/logout")
 @login_required
 def logout():
     logout_user()
     return redirect(url_for("login"))
 
-
 # ---------------- DASHBOARD ----------------
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    low = Ticket.query.filter_by(priority="Low").count()
-medium = Ticket.query.filter_by(priority="Medium").count()
-high = Ticket.query.filter_by(priority="High").count()
 
-    priority_filter = request.args.get("priority")
-    status_filter = request.args.get("status")
-
-    tickets = Ticket.query
-
-    if priority_filter:
-        tickets = tickets.filter_by(priority=priority_filter)
-
-    if status_filter:
-        tickets = tickets.filter_by(status=status_filter)
-
-    tickets = tickets.all()
+    if current_user.role == "agent":
+        tickets = Ticket.query.filter_by(agent_id=current_user.id).all()
+    else:
+        tickets = Ticket.query.all()
 
     total = Ticket.query.count()
     open_count = Ticket.query.filter_by(status="Open").count()
     resolved = Ticket.query.filter_by(status="Resolved").count()
 
-    # Agent performance
-    agents = User.query.filter_by(role="agent").all()
-    performance = []
-
-    for agent in agents:
-        solved = Ticket.query.filter_by(agent_id=agent.id, status="Resolved").count()
-        performance.append({"name": agent.username, "solved": solved})
+    low = Ticket.query.filter_by(priority="Low").count()
+    medium = Ticket.query.filter_by(priority="Medium").count()
+    high = Ticket.query.filter_by(priority="High").count()
 
     return render_template("dashboard.html",
                            tickets=tickets,
                            total=total,
                            open_count=open_count,
                            resolved=resolved,
-                           performance=performance)
-
+                           low=low,
+                           medium=medium,
+                           high=high)
 
 # ---------------- CREATE TICKET ----------------
 @app.route("/create_ticket", methods=["GET","POST"])
@@ -107,34 +125,74 @@ def create_ticket():
 
     if request.method == "POST":
 
-        due = datetime.utcnow() + timedelta(days=2)  # SLA 2 days
+        file = request.files.get("attachment")
+        filename = None
+
+        if file:
+            filename = file.filename
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+        due = datetime.utcnow() + timedelta(days=2)
 
         ticket = Ticket(
             title=request.form['title'],
             description=request.form['description'],
             priority=request.form['priority'],
             agent_id=request.form['agent'],
-            due_date=due
+            due_date=due,
+            attachment=filename
         )
 
         db.session.add(ticket)
         db.session.commit()
+
+        # Email Notification
+        try:
+            msg = Message("New Ticket Created",
+                          sender=app.config['MAIL_USERNAME'],
+                          recipients=[app.config['MAIL_USERNAME']])
+            msg.body = f"New Ticket: {ticket.title}"
+            mail.send(msg)
+        except:
+            pass
 
         return redirect(url_for("dashboard"))
 
     agents = User.query.filter_by(role="agent").all()
     return render_template("create_ticket.html", agents=agents)
 
-
 # ---------------- UPDATE STATUS ----------------
 @app.route("/update/<int:id>/<status>")
 @login_required
-def update(id, status):
+def update_status(id, status):
     ticket = Ticket.query.get_or_404(id)
     ticket.status = status
-
-    if status == "Resolved":
-        ticket.due_date = None
-
     db.session.commit()
     return redirect(url_for("dashboard"))
+
+# ---------------- ADMIN PANEL ----------------
+@app.route("/admin")
+@login_required
+def admin_panel():
+    if current_user.role != "admin":
+        return "Access Denied"
+
+    users = User.query.all()
+    return render_template("admin.html", users=users)
+
+# ---------------- EMPLOYEES ----------------
+@app.route("/employees")
+@login_required
+def employees():
+    employees = Employee.query.all()
+    return render_template("employees.html", employees=employees)
+
+# ---------------- LANGUAGE SWITCH ----------------
+@app.route("/change_lang/<lang>")
+def change_lang(lang):
+    session['lang'] = lang
+    return redirect(request.referrer or url_for("dashboard"))
+
+# ---------------- RUN ----------------
+if __name__ == "__main__":
+    app.run(debug=True)
