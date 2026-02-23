@@ -63,6 +63,9 @@ def logout():
 @app.route("/dashboard")
 @login_required
 def dashboard():
+    low = Ticket.query.filter_by(priority="Low").count()
+medium = Ticket.query.filter_by(priority="Medium").count()
+high = Ticket.query.filter_by(priority="High").count()
 
     priority_filter = request.args.get("priority")
     status_filter = request.args.get("status")
