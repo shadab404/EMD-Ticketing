@@ -22,3 +22,5 @@
 {% if ticket.due_date and ticket.due_date < now and ticket.status != "Resolved" %}
     <span style="color:red;">Overdue</span>
 {% endif %}
+if current_user.role == "agent":
+    tickets = Ticket.query.filter_by(agent_id=current_user.id)
