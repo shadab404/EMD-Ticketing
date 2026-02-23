@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
-app.config['SECRET_KEY'] = 'supersecretkey'
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "devkey")
 
 # PostgreSQL for Render
 database_url = os.getenv("DATABASE_URL")
