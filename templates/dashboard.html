@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+    <h2>Dashboard</h2>
+
+    <p>Total Tickets: {{ total }}</p>
+    <p>Open Tickets: {{ open_tickets }}</p>
+    <p>Resolved Tickets: {{ resolved }}</p>
+    <p>Overdue Tickets: {{ overdue }}</p>
+
+    <h3>All Tickets</h3>
+    <ul>
+        {% for ticket in tickets %}
+            <li>{{ ticket.title }} - {{ ticket.status }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
