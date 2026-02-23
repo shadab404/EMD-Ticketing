@@ -59,19 +59,27 @@ with app.app_context():
 
 @app.route("/", methods=["GET", "POST"])
 def login():
+    print("Login route hit")
+
     if request.method == "POST":
-        user = User.query.filter_by(email=request.form["email"]).first()
-        if user and check_password_hash(user.password, request.form["password"]):
+        print("POST received")
+        print("Form data:", request.form)
+
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        print("Email:", email)
+        print("Password exists:", bool(password))
+
+        user = User.query.filter_by(email=email).first()
+
+        if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for("dashboard"))
-        flash("Invalid credentials")
-    return render_template("login.html")
 
-@app.route("/logout")
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for("login"))
+        flash("Invalid credentials")
+
+    return render_template("login.html")
 
 # ---------------- DASHBOARD ---------------- #
 
