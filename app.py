@@ -9,6 +9,14 @@ from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
+# Fix for Render proxy (IMPORTANT)
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+# Force HTTPS scheme
+app.config['PREFERRED_URL_SCHEME'] = 'https'
+
+# Secret key from environment variable
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
 
 # PostgreSQL for Render
