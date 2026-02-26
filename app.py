@@ -64,11 +64,7 @@ def login():
         password = request.form.get("password")
 
         # Try to find user by email first
-        user = User.query.filter_by(email=login_input).first()
-
-        # If not found by email, try username
-        if not user:
-            user = User.query.filter_by(username=login_input).first()
+     user = User.query.filter_by(email=login_input).first()
 
         if user and check_password_hash(user.password, password):
             login_user(user)
