@@ -52,8 +52,6 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-with app.app_context():
-    db.create_all()
 
 # ---------------- AUTH ---------------- #
 
