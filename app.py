@@ -17,7 +17,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config['PREFERRED_URL_SCHEME'] = 'https'
 
 # Secret key from environment variable
-app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "super-secret-key-123")
 
 # PostgreSQL for Render
 database_url = os.getenv("DATABASE_URL")
