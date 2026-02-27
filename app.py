@@ -146,4 +146,23 @@ def download_file(filename):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port) 
+
+@app.route("/create-admin")
+def create_admin():
+    from werkzeug.security import generate_password_hash
+
+    if User.query.filter_by(email="admin@gmail.com").first():
+        return "Admin already exists"
+
+    admin = User(
+        username="admin",
+        email="admin@gmail.com",
+        password=generate_password_hash("admin123"),
+        role="admin"
+    )
+
+    db.session.add(admin)
+    db.session.commit()
+
+    return "Admin created successfully!"
