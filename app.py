@@ -59,21 +59,16 @@ def load_user(user_id):
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        login_input = request.form.get("login")
+        email = request.form.get("email")
         password = request.form.get("password")
 
-        # Try email first
-        user = User.query.filter_by(email=login_input).first()
-
-        # If not found, try username
-        if not user:
-            user = User.query.filter_by(username=login_input).first()
+        user = User.query.filter_by(email=email).first()
 
         if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for("dashboard"))
 
-        flash("Invalid credentials")
+        flash("Invalid email or password")
 
     return render_template("login.html")
 
