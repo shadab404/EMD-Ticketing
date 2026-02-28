@@ -13,9 +13,6 @@ app = Flask(__name__)
 from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Force HTTPS scheme
-app.config['PREFERRED_URL_SCHEME'] = 'https'
-
 # Secret key from environment variable
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "super-secret-key-123")
 
