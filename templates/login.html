@@ -10,7 +10,19 @@
     <div class="card shadow p-4" style="width:400px;">
         <h3 class="text-center mb-4">IT Ticketing Login</h3>
 
-        <form method="POST" action="/">
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="alert alert-danger">
+      {% for message in messages %}
+        {{ message }}
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<form method="POST" action="/">
+
+        
             <div class="mb-3">
                <input type="text" name="login" required>
             </div>
