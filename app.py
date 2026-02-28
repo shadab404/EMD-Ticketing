@@ -154,12 +154,11 @@ def download_file(filename):
 
 @app.route("/create-admin")
 def create_admin():
-    from werkzeug.security import generate_password_hash
-
     if User.query.filter_by(email="admin@gmail.com").first():
         return "Admin already exists"
 
     admin = User(
+        name="Administrator",   # 🔥 ADD THIS
         email="admin@gmail.com",
         password=generate_password_hash("admin123"),
         role="admin"
