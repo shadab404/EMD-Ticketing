@@ -59,10 +59,12 @@ def load_user(user_id):
 #     db.create_all()
 # ---------------- AUTH ---------------- #
 
+from werkzeug.security import check_password_hash
+
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form.get("login")
+        email = request.form.get("email")
         password = request.form.get("password")
 
         user = User.query.filter_by(email=email).first()
