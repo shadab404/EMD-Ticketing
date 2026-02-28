@@ -158,7 +158,6 @@ def create_admin():
         return "Admin already exists"
 
     admin = User(
-        username="admin",
         email="admin@gmail.com",
         password=generate_password_hash("admin123"),
         role="admin"
